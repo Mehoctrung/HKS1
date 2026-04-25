@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mê học trung - Mehoctrung68 Final Master</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Hanzi Writer Library for Stroke Animations -->
+    <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5/dist/hanzi-writer.min.js"></script>
+    <!-- Montserrat & Noto Sans SC Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --china-red: #bc241c;
+            --china-gold: #d4af37;
+            --china-dark: #8b1a14;
+        }
+
+        /* Montserrat font chuẩn Mehoctrung68 */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #f4ece1;
+            background-image: url("https://www.transparenttextures.com/patterns/natural-paper.png");
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .chinese-font { font-family: 'Noto Sans SC', sans-serif; }
+        
+        .art-font { 
+            font-family: 'Montserrat', sans-serif; 
+            font-weight: 700; 
+            font-size: 1.5rem;
+            letter-spacing: -0.5px;
+            color: white;
+            text-transform: uppercase;
+        }
+
+        /* Flashcard Styles */
+        .card-inner {
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+        .flipped .card-inner { transform: rotateY(180deg); }
+        
+        .card-front, .card-back {
+            backface-visibility: hidden;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 6px solid var(--china-gold);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            padding: 20px;
+        }
+        .card-front {
+            background: linear-gradient(135deg, var(--china-red), var(--china-dark));
+            color: white;
+        }
+        .card-back {
+            background: white;
+            color: #333;
+            transform: rotateY(180deg);
+        }
+
+        .btn-china {
+            background: linear-gradient(135deg, var(--china-red), var(--china-dark));
+            color: white;
+            box-shadow: 0 4px 0 #66110d;
+            transition: all 0.2s;
+        }
+        .btn-china:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #66110d;
+        }
+
+        /* Memory Input Styling */
+        .memory-input {
+            width: 95px;
+            padding: 6px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            text-align: center;
+            font-family: 'Noto Sans SC', sans-serif;
+            transition: all 0.3s;
+            background: white;
+        }
+        .memory-input.correct { border-color: #22c55e !important; background-color: #f0fdf4 !important; color: #166534 !important; font-weight: bold; }
+        .memory-input.wrong { border-color: #ef4444 !important; background-color: #fee2e2 !important; color: #991b1b !important; font-weight: bold; }
+
+        /* Timer Badge */
+        .timer-badge {
+            background: rgba(0,0,0,0.3);
+            color: #ffde00;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-family: monospace;
+            font-size: 13px;
+            font-weight: bold;
+            border: 1px solid rgba(255,222,0,0.3);
+        }
+
+        /* Search Box Fixed for Unikey */
+        .search-box {
+            background: white;
+            border: 2px solid var(--china-gold);
+            border-radius: 12px;
+            padding: 10px 15px;
+            width: 100%;
+            max-width: 500px;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+            color: var(--china-dark);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            outline: none;
+        }
+
+        .scroll-custom::-webkit-scrollbar { width: 6px; height: 6px; }
+        .scroll-custom::-webkit-scrollbar-track { background: transparent; }
+        .scroll-custom::-webkit-scrollbar-thumb { background: var(--china-gold); border-radius: 10px; }
+
+        .hidden-content { filter: blur(8px); user-select: none; opacity: 0.3; }
+
+        /* Big Action Buttons for Flashcard */
+        .flash-action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 110px;
+            height: 110px;
+            border-radius: 24px;
+            background: rgba(255,255,255,0.15);
+            border: 2px solid rgba(255,255,255,0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+        .flash-action-btn.active {
+            background: var(--china-gold);
+            border-color: white;
+            transform: scale(1.1);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        }
+        .flash-action-btn:hover { background: rgba(255,255,255,0.25); }
+        .flash-action-btn span { font-size: 2.8rem; margin-bottom: 4px; }
+        .flash-action-btn p { font-size: 0.8rem; font-weight: 900; letter-spacing: 1px; color: white; }
+
+        #flash-writer-container {
+            position: absolute;
+            top: 50%; left: 50%; transform: translate(-50%, -60%);
+            background: white; border-radius: 15px; padding: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3); display: none; z-index: 50;
+        }
+
+        #writing-modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); z-index: 100; align-items: center; justify-content: center;
+        }
+        .modal-content {
+            background: #f4ece1; padding: 2rem; border-radius: 20px;
+            border: 8px solid var(--china-gold); max-width: 90%; width: 400px;
+            text-align: center; position: relative;
+        }
+
+        /* Decorations */
+        .panda-decoration {
+            position: fixed;
+            bottom: 120px;
+            right: 10px;
+            font-size: 80px;
+            z-index: 0;
+            opacity: 0.8;
+            pointer-events: none;
+            filter: drop-shadow(0 5px 15px rgba(0,0,0,0.1));
+        }
+
+        .lantern-decoration {
+            position: absolute;
+            top: -5px;
+            left: 20px;
+            font-size: 40px;
+            animation: swing 3s ease-in-out infinite;
+            transform-origin: top center;
+        }
+
+        @keyframes swing {
+            0%, 100% { transform: rotate(-8deg); }
+            50% { transform: rotate(8deg); }
+        }
+
+        /* Footer */
+        .page-footer {
+            width: 100%;
+            padding: 20px 0;
+            text-align: center;
+            background: transparent;
+            margin-top: auto;
+            position: relative;
+            z-index: 20;
+        }
+
+        .toggle-btn {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: var(--china-gold);
+            color: white;
+            margin-left: 5px;
+            cursor: pointer;
+            border: none;
+            vertical-align: middle;
+            font-weight: bold;
+        }
+        
+        /* Quiz */
+        .quiz-correct { background-color: #dcfce7 !important; border-color: #22c55e !important; color: #166534 !important; animation: bounce 0.5s ease; }
+        .quiz-wrong { background-color: #fee2e2 !important; border-color: #ef4444 !important; color: #991b1b !important; animation: shake 0.4s ease; }
+        @keyframes bounce { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+    </style>
+</head>
+<body>
+
+    <div class="panda-decoration">🐼</div>
+    <div class="lantern-decoration">🏮</div>
+
+    <!-- Writing Modal -->
+    <div id="writing-modal" onclick="closeWritingModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <button onclick="closeWritingModal()" class="absolute top-2 right-4 text-3xl text-red-800 font-bold">&times;</button>
+            <h3 class="text-xl font-bold text-red-800 mb-2 font-quicksand uppercase tracking-tighter">Tập viết chữ Hán</h3>
+            <p id="modal-pinyin" class="text-gray-500 italic mb-4 font-semibold"></p>
+            <div id="writer-target" class="bg-white rounded-xl inline-block border-4 border-yellow-500 shadow-inner"></div>
+            <div class="mt-4"><button onclick="animateStrokes()" class="btn-china px-8 py-2 rounded-xl font-bold uppercase">Vẽ lại</button></div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="w-full bg-[#bc241c] py-4 px-4 shadow-2xl border-b-4 border-[#d4af37] relative overflow-hidden z-10">
+        <div class="max-w-7xl mx-auto flex justify-between items-center relative z-10">
+            <div class="flex items-center gap-4">
+                <div class="bg-yellow-400 p-2 rounded-full border-2 border-white shadow-lg"><span class="text-xl">🏮</span></div>
+                <div>
+                    <h1 class="art-font uppercase">Mê học trung</h1>
+                    <p class="text-yellow-200 text-[9px] font-bold tracking-widest uppercase opacity-70">HSK Master Template (Mehoctrung68)</p>
+                </div>
+            </div>
+            <div class="flex flex-col items-end gap-2">
+                <div class="timer-badge" id="study-timer">00:00:00</div>
+                <div id="score-box" class="bg-black/20 px-4 py-1 rounded-xl backdrop-blur-md border border-white/20 text-center">
+                    <span id="score-val" class="text-xl font-bold text-yellow-300">0</span>
+                    <span class="text-white text-[9px] block opacity-70 uppercase font-bold">Điểm</span>
+                </div>
+            </div>
+        </div>
+        <svg class="opacity-10 absolute top-0 right-0 w-48 h-48 fill-white" viewBox="0 0 100 100"><path d="M20,50 Q20,30 40,30 Q50,10 70,30 Q90,30 90,50 Q90,70 70,70 Q60,90 40,70 Q20,70 20,50"/></svg>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="w-full max-w-5xl flex flex-wrap justify-around mt-6 px-4 mx-auto gap-2 z-10">
+        <button onclick="switchTab('library')" class="tab-btn flex-1 min-w-[100px] py-3 rounded-xl font-bold transition-all bg-white text-red-800 shadow-lg border-b-4 border-red-800">Thư viện</button>
+        <button onclick="switchTab('typingHz')" class="tab-btn flex-1 min-w-[100px] py-3 rounded-xl font-bold transition-all bg-white/50 text-gray-600">Gõ chữ tiếng hán</button>
+        <button onclick="switchTab('typingVi')" class="tab-btn flex-1 min-w-[100px] py-3 rounded-xl font-bold transition-all bg-white/50 text-gray-600">Gõ chữ tiếng việt</button>
+        <button onclick="switchTab('flashcard')" class="tab-btn flex-1 min-w-[100px] py-3 rounded-xl font-bold transition-all bg-white/50 text-gray-600">Flashcard</button>
+        <button onclick="switchTab('quiz')" class="tab-btn flex-1 min-w-[100px] py-3 rounded-xl font-bold transition-all bg-white/50 text-gray-600">Trắc nghiệm</button>
+    </nav>
+
+    <!-- App Body -->
+    <main id="app-body" class="w-full max-w-[98%] p-6 mx-auto flex flex-col items-center z-10 min-h-[60vh]">
+        <!-- Content injected via JS -->
+    </main>
+
+    <!-- Footer -->
+    <footer class="page-footer">
+        <p class="text-red-800 font-bold text-[11px] italic drop-shadow-sm mb-1 uppercase tracking-wide">Tạo bởi “Mê học Trung” - Follow mình nghen</p>
+        <p class="text-gray-600 font-semibold tracking-wide text-[10px]">
+            Kết nối: <a href="https://www.tiktok.com/@mehoctrung_?_r=1&_t=ZS-95ixxa7dvbr" target="_blank" class="text-red-600 underline hover:text-red-800 transition-colors font-bold">TikTok Mê học trung</a>
+        </p>
+    </footer>
+
+    <script>
+        // --- DỮ LIỆU TỪ VỰNG: Mehoctrung68 ---
+        const vocabulary = [
+            { hz: "你", py: "nǐ", type: "Đại từ", vi: "bạn", ex: "你好！ (Nǐ hǎo! - Chào bạn!)" },
+            { hz: "您", py: "nín", type: "Đại từ", vi: "ngài, ông, bà", ex: "老师，您好！ (Lǎoshī, nín hǎo! - Chào thầy!)" },
+            { hz: "你们", py: "nǐmen", type: "Đại từ", vi: "các bạn", ex: "你们好吗？ (Nǐmen hǎo ma? - Các bạn khỏe không?)" },
+            { hz: "我", py: "wǒ", type: "Đại từ", vi: "tôi", ex: "我是学生。 (Wǒ shì xuésheng. - Tôi là học sinh.)" },
+            { hz: "我们", py: "wǒmen", type: "Đại từ", vi: "chúng tôi", ex: "我们是朋友。 (Wǒmen shì péngyou. - Chúng tôi là bạn bè.)" },
+            { hz: "他", py: "tā", type: "Đại từ", vi: "anh ấy", ex: "他是老师。 (Tā shì lǎoshī. - Anh ấy là giáo viên.)" },
+            { hz: "他们", py: "tāmen", type: "Đại từ", vi: "họ (nam)", ex: "他们去哪儿？ (Tāmen qù nǎr? - Họ đi đâu?)" },
+            { hz: "她", py: "tā", type: "Đại từ", vi: "cô ấy", ex: "她很漂亮。 (Tā hěn piàoliang. - Cô ấy rất xinh đẹp.)" },
+            { hz: "她们", py: "tāmen", type: "Đại từ", vi: "họ (nữ)", ex: "她们在跳舞。 (Tāmen zài tiàowǔ. - Họ đang khiêu vũ.)" },
+            { hz: "好", py: "hǎo", type: "Tính từ", vi: "tốt, khỏe, giỏi", ex: "这个很好。 (Zhè ge hěn hǎo. - Cái này rất tốt.)" },
+            { hz: "叫", py: "jiào", type: "Động từ", vi: "gọi, tên là", ex: "我叫阮文A。 (Wǒ jiào Ruǎn Wén A. - Tôi tên là Nguyễn Văn A.)" },
+            { hz: "什么", py: "shénme", type: "Đại từ nghi vấn", vi: "cái gì", ex: "这是什么？ (Zhè shì shénme? - Đây là cái gì?)" },
+            { hz: "名字", py: "míngzi", type: "Danh từ", vi: "tên", ex: "你的名字是什么？ (Nǐ de míngzi shì shénme? - Tên của bạn là gì?)" },
+            { hz: "贵姓", py: "guìxìng", type: "Danh từ", vi: "quý danh", ex: "您贵姓？ (Nín guìxìng? - Ngài họ gì?)" },
+            { hz: "姓", py: "xìng", type: "Động từ / Danh từ", vi: "họ", ex: "我姓阮。 (Wǒ xìng Ruǎn. - Tôi họ Nguyễn.)" },
+            { hz: "是", py: "shì", type: "Động từ", vi: "là", ex: "我是越南人。 (Wǒ shì Yuènán rén. - Tôi là người Việt Nam.)" },
+            { hz: "吗", py: "ma", type: "Trợ từ", vi: "không?", ex: "你好吗？ (Nǐ hǎo ma? - Bạn khỏe không?)" },
+            { hz: "认识", py: "rènshi", type: "Động từ", vi: "quen biết", ex: "认识你很高兴。 (Rènshi nǐ hěn gāoxìng. - Rất vui được quen bạn.)" },
+            { hz: "很", py: "hěn", type: "Phó từ", vi: "rất", ex: "我很忙。 (Wǒ hěn máng. - Tôi rất bận.)" },
+            { hz: "高兴", py: "gāoxìng", type: "Tính từ", vi: "vui vẻ", ex: "我很高兴。 (Wǒ hěn gāoxìng. - Tôi rất vui.)" },
+            { hz: "漂亮", py: "piàoliang", type: "Tính từ", vi: "xinh đẹp", ex: "她很漂亮。 (Tā hěn piàoliang. - Cô ấy rất xinh đẹp.)" },
+            { hz: "帅", py: "shuài", type: "Tính từ", vi: "đẹp trai", ex: "他很帅。 (Tā hěn shuài. - Anh ấy rất đẹp trai.)" },
+            { hz: "也", py: "yě", type: "Phó từ", vi: "cũng", ex: "我也去。 (Wǒ yě qù. - Tôi cũng đi.)" },
+            { hz: "都", py: "dōu", type: "Phó từ", vi: "đều", ex: "我们都在。 (Wǒmen dōu zài. - Chúng tôi đều ở đây.)" },
+            { hz: "老师", py: "lǎoshī", type: "Danh từ", vi: "thầy cô giáo", ex: "王老师好！ (Wáng lǎoshī hǎo! - Chào thầy Vương!)" },
+            { hz: "大家", py: "dàjiā", type: "Đại từ", vi: "mọi người", ex: "大家好！ (Dàjiā hǎo! - Chào mọi người!)" },
+            { hz: "谢谢", py: "xièxie", type: "Động từ", vi: "cảm ơn", ex: "谢谢老师。 (Xièxie lǎoshī. - Cảm ơn thầy giáo.)" },
+            { hz: "和", py: "hé", type: "Liên từ", vi: "và", ex: "我和你。 (Wǒ hé nǐ. - Tôi và bạn.)" },
+            { hz: "这", py: "zhè", type: "Đại từ", vi: "đây", ex: "这是我的。 (Zhè shì wǒ de. - Cái này là của tôi.)" },
+            { hz: "那", py: "nà", type: "Đại từ", vi: "đó, kia", ex: "那是他的书。 (Nà shì tā de shū. - Đó là sách của anh ấy.)" },
+            { hz: "妈", py: "mā", type: "Danh từ", vi: "mẹ", ex: "妈妈爱我。 (Māma ài wǒ. - Mẹ yêu tôi.)" },
+            { hz: "爸", py: "bà", type: "Danh từ", vi: "bố", ex: "爸爸在工作。 (Bàba zài gōngzuò. - Bố đang làm việc.)" },
+            { hz: "阿姨", py: "āyí", type: "Danh từ", vi: "dì, cô", ex: "阿姨好！ (Āyí hǎo! - Chào dì!)" },
+            { hz: "真", py: "zhēn", type: "Phó từ", vi: "thật, thật là", ex: "真漂亮！ (Zhēn piàoliang! - Thật là đẹp!)" },
+            { hz: "不", py: "bù", type: "Phó từ", vi: "không", ex: "我不去。 (Wǒ bú qù. - Tôi không đi.)" },
+            { hz: "年轻", py: "niánqīng", type: "Tính từ", vi: "trẻ", ex: "你很年轻。 (Nǐ hěn niánqīng. - Bạn rất trẻ.)" },
+            { hz: "多大", py: "duōdà", type: "Cụm đại từ", vi: "bao nhiêu tuổi", ex: "你多大了？ (Nǐ duōdà le? - Bạn bao nhiêu tuổi rồi?)" },
+            { hz: "岁", py: "suì", type: "Danh từ", vi: "tuổi", ex: "我十八岁。 (Wǒ shí bā suì. - Tôi 18 tuổi.)" },
+            { hz: "年", py: "nián", type: "Danh từ", vi: "năm", ex: "今年是2025年。 (Jīnnián shì èr líng èr wǔ nián.)" },
+            { hz: "出生", py: "chūshēng", type: "Động từ", vi: "sinh ra", ex: "我出生在河内。 (Wǒ chūshēng zài Hénèi.)" },
+            { hz: "属", py: "shǔ", type: "Động từ", vi: "thuộc con giáp", ex: "我属猫。 (Wǒ shǔ māo. - Tôi tuổi Mão.)" },
+            { hz: "年纪", py: "niánjì", type: "Danh từ", vi: "tuổi tác", ex: "他年纪很大。 (Tā niánjì hěn dà.)" },
+            { hz: "猜", py: "cāi", type: "Động từ", vi: "đoán", ex: "猜一猜。 (Cāi yì cāi. - Đoán thử xem.)" },
+            { hz: "觉得", py: "juéde", type: "Động từ", vi: "cảm thấy", ex: "我觉得很累。 (Wǒ juéde hěn lèi.)" },
+            { hz: "左右", py: "zuǒyòu", type: "Danh từ", vi: "khoảng, tầm", ex: "三十岁左右。 (Sānshí suì zuǒyòu.)" },
+            { hz: "对", py: "duì", type: "Tính từ", vi: "đúng", ex: "你说对了。 (Nǐ shuō duì le.)" },
+            { hz: "的", py: "de", type: "Trợ từ", vi: "của", ex: "我的名字。 (Wǒ de míngzi.)" },
+            { hz: "多少", py: "duōshao", type: "Đại từ", vi: "bao nhiêu", ex: "多少钱？ (Duōshao qián?)" },
+            { hz: "哪", py: "nǎ", type: "Đại từ", vi: "nào", ex: "你是哪国人？ (Nǐ shì nǎ guó rén?)" },
+            { hz: "一", py: "yī", type: "Số từ", vi: "một", ex: "一个。 (Yí ge.)" },
+            { hz: "二", py: "èr", type: "Số từ", vi: "hai", ex: "二月。 (Èryuè.)" },
+            { hz: "三", py: "sān", type: "Số từ", vi: "ba", ex: "三个月。 (Sān ge yuè.)" },
+            { hz: "四", py: "sì", type: "Số từ", vi: "bốn", ex: "四季。 (Sì jì.)" },
+            { hz: "五", py: "wǔ", type: "Số từ", vi: "năm", ex: "五个苹果。 (Wǔ ge píngguǒ.)" },
+            { hz: "六", py: "liù", type: "Số từ", vi: "sáu", ex: "六点。 (Liù diǎn.)" },
+            { hz: "七", py: "qī", type: "Số từ", vi: "bảy", ex: "七岁。 (Qī suì.)" },
+            { hz: "八", py: "bā", type: "Số từ", vi: "tám", ex: "八人。 (Bā rén.)" },
+            { hz: "九", py: "jiǔ", type: "Số từ", vi: "chín", ex: "九月。 (Jiǔyuè.)" },
+            { hz: "十", py: "shí", type: "Số từ", vi: "mười", ex: "十年。 (Shí nián.)" },
+            { hz: "零", py: "líng", type: "Số từ", vi: "không", ex: "零分。 (Líng fēn.)" },
+            { hz: "百", py: "bǎi", type: "Số từ", vi: "trăm", ex: "一百。 (Yìbǎi.)" },
+            { hz: "千", py: "qiān", type: "Số từ", vi: "ngàn", ex: "一千。 (Yìqiān.)" },
+            { hz: "万", py: "wàn", type: "Số từ", vi: "vạn", ex: "一万。 (Yíwàn.)" },
+            { hz: "几", py: "jǐ", type: "Số từ", vi: "mấy", ex: "几个人？ (Jǐ ge rén?)" },
+            { hz: "鼠", py: "shǔ", type: "Danh từ", vi: "Tý (Chuột)", ex: "我属鼠。" },
+            { hz: "牛", py: "niú", type: "Danh từ", vi: "Sửu (Trâu)", ex: "大牛。" },
+            { hz: "虎", py: "hǔ", type: "Danh từ", vi: "Dần (Hổ)", ex: "老虎。" },
+            { hz: "猫", py: "māo", type: "Danh từ", vi: "Mão (Mèo)", ex: "小猫。" },
+            { hz: "龙", py: "lóng", type: "Danh từ", vi: "Thìn (Rồng)", ex: "龙年。" },
+            { hz: "蛇", py: "shé", type: "Danh từ", vi: "Tỵ (Rắn)", ex: "青蛇。" },
+            { hz: "马", py: "mǎ", type: "Danh từ", vi: "Ngọ (Ngựa)", ex: "小马。" },
+            { hz: "羊", py: "yáng", type: "Danh từ", vi: "Mùi (Dê)", ex: "白羊。" },
+            { hz: "猴", py: "hóu", type: "Danh từ", vi: "Thân (Khỉ)", ex: "猴子。" },
+            { hz: "鸡", py: "jī", type: "Danh từ", vi: "Dậu (Gà)", ex: "公鸡。" },
+            { hz: "狗", py: "gǒu", type: "Danh từ", vi: "Tuất (Chó)", ex: "小狗。" },
+            { hz: "猪", py: "zhū", type: "Danh từ", vi: "Hợi (Lợn)", ex: "肥猪。" }
+        ];
+
+        let state = {
+            tab: 'library', score: 0, 
+            cardIndex: 0,
+            showHz: true, showPy: true, showEx: true,
+            searchQuery: "", 
+            flashcardList: [...vocabulary],
+            typingHzList: [...vocabulary],
+            typingViList: [...vocabulary],
+            typingHzIndex: 0,
+            typingViIndex: 0,
+            memoryInputs: {}, startTime: Date.now()
+        };
+
+        let writers = []; let flashWriters = []; let isWritingFlash = false;
+
+        // Timer
+        function updateTimer() {
+            const diff = Math.floor((Date.now() - state.startTime) / 1000);
+            const h = Math.floor(diff / 3600).toString().padStart(2, '0');
+            const m = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
+            const s = (diff % 60).toString().padStart(2, '0');
+            const el = document.getElementById('study-timer');
+            if (el) el.innerText = `${h}:${m}:${s}`;
+        }
+        setInterval(updateTimer, 1000);
+
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                if (window.speechSynthesis.speaking) { window.speechSynthesis.cancel(); return false; }
+                const ut = new SpeechSynthesisUtterance(text);
+                ut.lang = 'zh-CN'; ut.rate = 0.82; window.speechSynthesis.speak(ut);
+                return true;
+            }
+            return false;
+        }
+
+        function launchFireworks() { confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#bc241c', '#d4af37', '#ffffff'] }); }
+
+        function switchTab(tab) {
+            state.tab = tab; isWritingFlash = false;
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                const label = btn.innerText.toLowerCase();
+                const target = tab==='library'?'thư viện':tab==='typingHz'?'hán':tab==='typingVi'?'việt':tab==='flashcard'?'flashcard':'trắc';
+                btn.className = label.includes(target) ? "tab-btn flex-1 min-w-[100px] py-3 rounded-xl font-bold transition-all bg-white text-red-800 shadow-lg border-b-4 border-red-800" : "tab-btn flex-1 min-w-[100px] py-3 rounded-xl font-bold transition-all bg-white/50 text-gray-600";
+            });
+            render();
+        }
+
+        function shuffleArray(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        // --- ACTIONS ---
+        function toggleFlashListen(hz, btn) { if(speak(hz)) { btn.classList.add('active'); setTimeout(() => btn.classList.remove('active'), 1500); } else btn.classList.remove('active'); }
+
+        async function toggleFlashWrite(hz, btn) {
+            const staticHz = document.getElementById('static-hz'); const target = document.getElementById('flash-writer-container');
+            if (isWritingFlash) {
+                isWritingFlash = false; btn.classList.remove('active'); 
+                if(staticHz) staticHz.style.opacity = "1";
+                if(target) { target.style.display = "none"; target.innerHTML = ""; }
+            } else {
+                isWritingFlash = true; btn.classList.add('active');
+                if(staticHz) staticHz.style.opacity = "0";
+                if(target) {
+                    target.style.display = "block"; target.innerHTML = "";
+                    flashWriters = [];
+                    hz.split('').forEach((char, i) => {
+                        const div = document.createElement('div'); div.id = `fl-char-${i}`; div.style.display = "inline-block"; target.appendChild(div);
+                        const wr = HanziWriter.create(div.id, char, { width: 180, height: 180, padding: 5, strokeAnimationSpeed: 1, delayBetweenStrokes: 200, strokeColor: '#bc241c' });
+                        flashWriters.push(wr);
+                    });
+                    for (const wr of flashWriters) { if (!isWritingFlash) break; await wr.animateCharacter(); }
+                }
+            }
+        }
+
+        function openWritingModal(hz, py) {
+            document.getElementById('modal-pinyin').innerText = py; document.getElementById('writer-target').innerHTML = ""; document.getElementById('writing-modal').style.display = "flex";
+            writers = [];
+            hz.split('').forEach((char, i) => {
+                const divId = `lb-char-${i}`; const div = document.createElement('div'); div.id = divId; div.style.display = "inline-block"; document.getElementById('writer-target').appendChild(div);
+                const wr = HanziWriter.create(divId, char, { width: 150, height: 150, padding: 5, strokeAnimationSpeed: 1, delayBetweenStrokes: 200, strokeColor: '#bc241c' });
+                writers.push(wr);
+            });
+            animateStrokes();
+        }
+
+        function closeWritingModal() { document.getElementById('writing-modal').style.display = "none"; }
+        async function animateStrokes() { for (const wr of writers) await wr.animateCharacter(); }
+
+        function parseExample(ex) {
+            const res = { hz: ex, py: "", vi: "" }; const m = ex.match(/\(([^)]+)\)/);
+            if (m) {
+                res.hz = ex.split('(')[0].trim(); const p = m[1].split(' - ');
+                res.py = p[0] ? p[0].trim() : ""; res.vi = p[1] ? p[1].trim() : "";
+            }
+            return res;
+        }
+
+        function handleMemoryCheck(inp, correct) {
+            const val = inp.value.trim(); state.memoryInputs[correct] = val;
+            if (val === correct) {
+                inp.classList.remove('wrong'); inp.classList.add('correct'); speak("对"); launchFireworks();
+                state.score += 5; document.getElementById('score-val').innerText = state.score;
+            } else {
+                let isCorr = true; for (let i = 0; i < val.length; i++) { if (val[i] !== correct[i]) { isCorr = false; break; } }
+                if (!isCorr || val.length >= correct.length) { inp.classList.remove('correct'); inp.classList.add('wrong'); speak("不对"); }
+                else inp.classList.remove('correct', 'wrong');
+            }
+        }
+
+        // --- RENDER LOGIC ---
+        function render() {
+            const body = document.getElementById('app-body'); body.innerHTML = '';
+            if (state.tab === 'library') renderLibrary(body);
+            else if (state.tab === 'typingHz') renderTypingHz(body);
+            else if (state.tab === 'typingVi') renderTypingVi(body);
+            else if (state.tab === 'flashcard') renderFlashcard(body);
+            else if (state.tab === 'quiz') renderQuiz(body);
+        }
+
+        function renderLibrary(container) {
+            container.innerHTML = `
+                <div class="w-full bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100 animate-fadeIn">
+                    <div class="bg-red-800 p-5 text-white flex flex-wrap justify-between items-center gap-4">
+                        <h2 class="font-bold text-lg">Thư viện Mê học trung</h2>
+                        <input type="text" id="lib-search" placeholder="Gõ Chữ Hán, Pinyin hoặc Nghĩa..." class="search-box w-full max-sm" value="${state.searchQuery}">
+                    </div>
+                    <div class="max-h-[65vh] overflow-y-auto scroll-custom">
+                        <table class="w-full text-left border-collapse min-w-[1300px]">
+                            <thead class="bg-gray-100 text-[11px] uppercase text-gray-500 sticky top-0 z-10 shadow-sm font-bold">
+                                <tr>
+                                    <th class="p-4">Chữ Hán <button class="toggle-btn" onclick="state.showHz=!state.showHz; updateTableOnly()">Ẩn/Hiện</button></th>
+                                    <th class="p-4">Pinyin <button class="toggle-btn" onclick="state.showPy=!state.showPy; updateTableOnly()">Ẩn/Hiện</button></th>
+                                    <th class="p-4">Loại từ</th>
+                                    <th class="p-4">Nghĩa Việt</th>
+                                    <th class="p-4">Ví dụ <button class="toggle-btn" onclick="state.showEx=!state.showEx; updateTableOnly()">Ẩn/Hiện</button></th>
+                                    <th class="p-4 text-center">Tập viết</th>
+                                    <th class="p-4 text-center">Nghe</th>
+                                    <th class="p-4 text-center text-red-800">Nhớ chữ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lib-tbody" class="divide-y divide-gray-50 text-sm"></tbody>
+                        </table>
+                    </div>
+                </div>`;
+            
+            const searchInput = document.getElementById('lib-search');
+            searchInput.addEventListener('input', (e) => {
+                state.searchQuery = e.target.value;
+                updateTableOnly();
+            });
+            updateTableOnly();
+        }
+
+        function updateTableOnly() {
+            const tbody = document.getElementById('lib-tbody'); if (!tbody) return;
+            const q = state.searchQuery.toLowerCase();
+            const filtered = vocabulary.filter(v => v.hz.includes(q) || v.py.toLowerCase().includes(q) || v.vi.toLowerCase().includes(q));
+            tbody.innerHTML = filtered.map(w => { 
+                const ex = parseExample(w.ex);
+                const savedVal = state.memoryInputs[w.hz] || "";
+                return `<tr class="hover:bg-yellow-50 transition border-b border-gray-100">
+                    <td class="p-4 chinese-font text-2xl font-bold text-red-800 ${state.showHz?'':'hidden-content'}">${w.hz}</td>
+                    <td class="p-4 text-gray-500 italic ${state.showPy?'':'hidden-content'}">${w.py}</td>
+                    <td class="p-4 font-semibold text-blue-600 uppercase text-[10px]">${w.type || '-'}</td>
+                    <td class="p-4 font-bold text-gray-700">${w.vi}</td>
+                    <td class="p-4 min-w-[320px]">
+                        <div class="flex items-start gap-2 bg-red-50/50 p-2 rounded-lg border border-red-100/50 ${state.showEx?'':'hidden-content'}">
+                            <div class="flex flex-col flex-1"><span class="chinese-font font-bold text-gray-800">${ex.hz}</span><span class="text-[10px] text-gray-500 italic">${ex.py}</span><span class="text-[11px] text-red-800 font-semibold mt-1">${ex.vi}</span></div>
+                            <button onclick="speak('${ex.hz}')" class="text-red-400 p-1">🔊</button>
+                        </div>
+                    </td>
+                    <td class="p-4 text-center"><button onclick="openWritingModal('${w.hz}', '${w.py}')" class="text-china-gold hover:scale-125 transition text-xl">🖊️</button></td>
+                    <td class="p-4 text-center"><button onclick="speak('${w.hz}')" class="bg-red-50 p-2 rounded-full text-red-600 shadow-sm">🔊</button></td>
+                    <td class="p-4 text-center"><input type="text" value="${savedVal}" placeholder="..." oninput="handleMemoryCheck(this, '${w.hz}')" class="memory-input"></td>
+                </tr>`}).join('');
+        }
+
+        // TYPING CHINESE
+        function renderTypingHz(container) {
+            const w = state.typingHzList[state.typingHzIndex];
+            container.innerHTML = `<div class="w-full max-w-md bg-white p-8 rounded-3xl shadow-xl border-t-8 border-red-800 text-center animate-fadeIn">
+                <button onclick="state.typingHzList=shuffleArray([...vocabulary]); state.typingHzIndex=0; render()" class="mb-4 bg-yellow-500 hover:bg-yellow-600 text-red-900 font-bold py-1 px-4 rounded-full text-[10px] uppercase"><span>🔀</span> Đảo thứ tự gõ</button>
+                <h2 class="text-xl font-bold text-gray-500 mb-2 uppercase text-xs">Gõ Chữ Hán Tương Ứng</h2>
+                <div class="text-3xl font-bold text-red-800 mb-6 bg-red-50 p-6 rounded-2xl border-2 border-red-100 shadow-inner">${w.vi}</div>
+                <input type="text" id="type-input-hz" placeholder="Nhập chữ Hán..." class="w-full p-4 text-2xl text-center chinese-font border-2 border-gray-200 rounded-xl focus:border-red-500 outline-none">
+                <div id="fb-hz" class="mt-4 flex flex-col items-center min-h-[60px]">
+                    <div id="fb-icon-hz" class="text-4xl"></div>
+                    <div id="fb-py-hz" class="text-xl font-bold text-gray-500 italic"></div>
+                </div>
+                <div class="flex gap-2 mt-6">
+                    <button onclick="checkTypingHz()" class="btn-china flex-1 py-3 rounded-xl font-bold">Kiểm tra</button>
+                    <button onclick="state.typingHzIndex=(state.typingHzIndex+1)%state.typingHzList.length; render()" class="bg-gray-200 text-gray-600 flex-1 py-3 rounded-xl font-bold">Bỏ qua</button>
+                </div>
+                <p class="mt-4 text-gray-400 font-bold text-[10px] uppercase">Tiến trình: ${state.typingHzIndex + 1} / ${vocabulary.length}</p>
+            </div>`;
+            document.getElementById('type-input-hz').focus();
+            document.getElementById('type-input-hz').addEventListener('keypress', e => { if(e.key==='Enter') checkTypingHz(); });
+        }
+
+        function checkTypingHz() {
+            const inp = document.getElementById('type-input-hz'); const val = inp.value.trim();
+            const correctWord = state.typingHzList[state.typingHzIndex];
+            if (val === correctWord.hz) {
+                document.getElementById('fb-icon-hz').innerText = '✅';
+                document.getElementById('fb-py-hz').innerText = correctWord.py;
+                state.score += 15; document.getElementById('score-val').innerText = state.score;
+                speak("太好了"); launchFireworks(); 
+                setTimeout(() => { state.typingHzIndex = (state.typingHzIndex + 1) % state.typingHzList.length; render(); }, 2000);
+            } else { document.getElementById('fb-icon-hz').innerText = '❌'; speak("不对"); }
+        }
+
+        // TYPING VIETNAMESE
+        function renderTypingVi(container) {
+            const w = state.typingViList[state.typingViIndex];
+            container.innerHTML = `<div class="w-full max-w-md bg-white p-8 rounded-3xl shadow-xl border-t-8 border-red-800 text-center animate-fadeIn">
+                <button onclick="state.typingViList=shuffleArray([...vocabulary]); state.typingViIndex=0; render()" class="mb-4 bg-yellow-500 hover:bg-yellow-600 text-red-900 font-bold py-1 px-4 rounded-full text-[10px] uppercase"><span>🔀</span> Đảo thứ tự gõ</button>
+                <h2 class="text-xl font-bold text-gray-500 mb-2 uppercase text-xs">Gõ Nghĩa Tiếng Việt</h2>
+                <div class="text-6xl font-bold text-red-800 mb-6 bg-red-50 p-6 rounded-2xl border-2 border-red-100 chinese-font shadow-inner">${w.hz}</div>
+                <input type="text" id="type-input-vi" placeholder="Nhập nghĩa tiếng Việt..." class="w-full p-4 text-lg text-center font-bold border-2 border-gray-200 rounded-xl focus:border-red-500 outline-none">
+                <div id="fb-vi" class="mt-4 flex flex-col items-center min-h-[60px]">
+                    <div id="fb-icon-vi" class="text-4xl"></div>
+                    <div id="fb-py-vi" class="text-xl font-bold text-gray-500 italic"></div>
+                </div>
+                <div class="flex gap-2 mt-6">
+                    <button onclick="checkTypingVi()" class="btn-china flex-1 py-3 rounded-xl font-bold">Kiểm tra</button>
+                    <button onclick="state.typingViIndex=(state.typingViIndex+1)%state.typingViList.length; render()" class="bg-gray-200 text-gray-600 flex-1 py-3 rounded-xl font-bold">Bỏ qua</button>
+                </div>
+                <p class="mt-4 text-gray-400 font-bold text-[10px] uppercase">Tiến trình: ${state.typingViIndex + 1} / ${vocabulary.length}</p>
+            </div>`;
+            document.getElementById('type-input-vi').focus();
+            document.getElementById('type-input-vi').addEventListener('keypress', e => { if(e.key==='Enter') checkTypingVi(); });
+        }
+
+        function checkTypingVi() {
+            const inp = document.getElementById('type-input-vi'); const val = inp.value.trim().toLowerCase();
+            const correctWord = state.typingViList[state.typingViIndex];
+            // Compare lowercase and trim
+            if (val === correctWord.vi.toLowerCase().split(',')[0].trim()) {
+                document.getElementById('fb-icon-vi').innerText = '✅';
+                document.getElementById('fb-py-vi').innerText = `${correctWord.py} (${correctWord.vi})`;
+                state.score += 15; document.getElementById('score-val').innerText = state.score;
+                speak("太好了"); launchFireworks();
+                setTimeout(() => { state.typingViIndex = (state.typingViIndex + 1) % state.typingViList.length; render(); }, 2000);
+            } else { document.getElementById('fb-icon-vi').innerText = '❌'; speak("不对"); }
+        }
+
+        function renderFlashcard(container) {
+            const w = state.flashcardList[state.cardIndex];
+            container.innerHTML = `
+                <div class="flex flex-col items-center w-full animate-fadeIn">
+                    <button onclick="state.flashcardList=shuffleArray([...vocabulary]); state.cardIndex=0; render()" class="mb-6 bg-yellow-500 hover:bg-yellow-600 text-red-900 font-bold py-2 px-6 rounded-full shadow transition-all transform active:scale-95 uppercase text-xs"><span>🔀</span> Đảo Flashcard</button>
+                    <div class="relative w-80 h-[480px] cursor-pointer group" onclick="this.classList.toggle('flipped')">
+                        <div class="card-inner relative w-full h-full">
+                            <div class="card-front">
+                                <div id="static-hz" class="chinese-font text-8xl mb-2 font-bold transition-opacity duration-300 text-white text-center">${w.hz}</div>
+                                <div id="flash-writer-container" onclick="event.stopPropagation()"></div>
+                                <span class="text-2xl font-semibold opacity-80 mb-8">${w.py}</span>
+                                <div class="flex gap-6 mt-4">
+                                    <div onclick="event.stopPropagation(); toggleFlashListen('${w.hz}', this)" class="flash-action-btn"><span>🔊</span><p class="font-bold">NGHE</p></div>
+                                    <div onclick="event.stopPropagation(); toggleFlashWrite('${w.hz}', this)" class="flash-action-btn"><span>🖊️</span><p class="font-bold">VIẾT</p></div>
+                                </div>
+                            </div>
+                            <div class="card-back text-center">
+                                <p class="text-blue-600 font-bold text-xs uppercase mb-2">${w.type}</p>
+                                <h3 class="text-4xl font-bold text-red-800 mb-8">${w.vi}</h3>
+                                <button onclick="event.stopPropagation(); this.closest('.group').classList.remove('flipped')" class="btn-china px-6 py-2 rounded-full text-xs font-bold uppercase">Quay lại</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex gap-4 mt-8 w-full max-w-sm">
+                        <button onclick="state.cardIndex=(state.cardIndex-1+state.flashcardList.length)%state.flashcardList.length; render()" class="btn-china flex-1 py-3 rounded-xl font-bold uppercase">Lùi lại</button>
+                        <button onclick="state.cardIndex=(state.cardIndex+1)%state.flashcardList.length; render()" class="btn-china flex-1 py-3 rounded-xl font-bold uppercase">Tiếp theo</button>
+                    </div>
+                </div>`;
+        }
+
+        function renderQuiz(container) {
+            const w = vocabulary[Math.floor(Math.random() * vocabulary.length)];
+            let opts = [w]; while(opts.length<4) { const r = vocabulary[Math.floor(Math.random()*vocabulary.length)]; if(!opts.some(o=>o.hz===r.hz)) opts.push(r); }
+            opts.sort(() => Math.random()-0.5);
+            container.innerHTML = `<div class="w-full max-w-2xl bg-white p-8 rounded-3xl shadow-xl border-t-8 border-red-800 text-center animate-fadeIn">
+                <div class="chinese-font text-8xl font-bold text-red-800 my-4">${w.hz}</div>
+                <div class="text-xl text-gray-400 font-medium mb-8 font-semibold">${w.py}</div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="quiz-options">
+                    ${opts.map(o => `<button onclick="handleQuizSelection(this, '${o.hz}', '${w.hz}')" class="p-5 border-2 border-gray-100 rounded-2xl font-bold text-gray-700 hover:border-red-500 transition-all shadow-sm">${o.vi}</button>`).join('')}
+                </div>
+            </div>`;
+        }
+
+        function handleQuizSelection(btn, sel, cor) {
+            const container = document.getElementById('quiz-options'); if(container) container.style.pointerEvents = 'none';
+            if (sel === cor) {
+                btn.classList.add('quiz-correct'); state.score += 10; document.getElementById('score-val').innerText = state.score;
+                speak("对"); launchFireworks(); setTimeout(render, 1500);
+            } else { btn.classList.add('quiz-wrong'); speak("不对"); setTimeout(() => { if(container) container.style.pointerEvents = 'auto'; btn.classList.remove('quiz-wrong'); }, 1000); }
+        }
+
+        window.onload = render;
+    </script>
+</body>
+</html>
